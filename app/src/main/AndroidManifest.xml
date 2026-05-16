@@ -22,10 +22,9 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.NammaRasteHealth">
 
-        <!-- TODO: Replace with your actual Google Maps API Key -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="YOUR_API_KEY_HERE" />
+            android:value="@string/google_maps_key" />
 
         <activity
             android:name=".MainActivity"
