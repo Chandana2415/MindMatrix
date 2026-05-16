@@ -22,6 +22,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Main_project"
+rootProject.name = "NammaRasteHealth"
 include(":app")
  

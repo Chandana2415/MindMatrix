@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
 @HiltViewModel
-class SuccessMapViewModel @Inject constructor(
+class LeaderboardViewModel @Inject constructor(
     private val roadRepository: RoadRepository
 ) : ViewModel() {
 

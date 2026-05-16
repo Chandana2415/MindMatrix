@@ -10,7 +10,7 @@ sealed class Screen(val route: String) {
         fun createRoute(roadId: Int = -1) = "report_damage?roadId=$roadId"
     }
     object MapView : Screen("map_view")
-    object SuccessMap : Screen("success_map")
+    object Leaderboard : Screen("leaderboard")
     object ContractorProfile : Screen("contractor_profile/{name}") {
         fun createRoute(name: String) = "contractor_profile/$name"
     }

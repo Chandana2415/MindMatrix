@@ -21,6 +21,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.*
+import androidx.compose.ui.res.stringResource
+import com.nammaraste.health.R
 import com.nammaraste.health.data.local.entities.Road
 import com.nammaraste.health.ui.components.*
 import com.nammaraste.health.ui.theme.healthColor
@@ -52,10 +54,10 @@ fun RoadDetailScreen(
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text(road?.roadName ?: "Road Details") },
+                title = { Text(road?.roadName ?: stringResource(R.string.road_details)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
@@ -70,7 +72,7 @@ fun RoadDetailScreen(
                             .padding(16.dp),
                         shape = RoundedCornerShape(8.dp)
                     ) {
-                        Text("Report Damage on This Road")
+                        Text(stringResource(R.string.report_damage_on_this_road))
                     }
                 }
             }
@@ -116,12 +118,12 @@ fun RoadDetailScreen(
                         Tab(
                             selected = selectedTab == 0,
                             onClick = { selectedTab = 0 },
-                            text = { Text("Damage Reports") }
+                            text = { Text(stringResource(R.string.damage_reports)) }
                         )
                         Tab(
                             selected = selectedTab == 1,
                             onClick = { selectedTab = 1 },
-                            text = { Text("Maintenance Log") }
+                            text = { Text(stringResource(R.string.maintenance_log)) }
                         )
                     }
                 }
@@ -148,7 +150,7 @@ fun RoadDetailScreen(
                     if (logs.isEmpty()) {
                         item {
                             Box(modifier = Modifier.height(200.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                                Text("No maintenance logs found.")
+                                Text(stringResource(R.string.no_maintenance_logs))
                             }
                         }
                     } else {
@@ -204,7 +206,7 @@ fun RoadHeroSection(road: Road) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 SuggestionChip(onClick = {}, label = { Text(road.roadType) })
                 SuggestionChip(onClick = {}, label = { Text("${road.totalLengthKm} km") })
-                SuggestionChip(onClick = {}, label = { Text("Built: ${road.constructionYear}") })
+                SuggestionChip(onClick = {}, label = { Text(stringResource(R.string.built, road.constructionYear)) })
             }
             Text(
                 text = "${road.talukaName}, ${road.districtName}",
@@ -256,7 +258,7 @@ fun MapPreviewCard(road: Road, reports: List<com.nammaraste.health.data.local.en
                 shape = RoundedCornerShape(8.dp)
             ) {
                 Text(
-                    text = "Preview Mode",
+                    text = stringResource(R.string.preview_mode),
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                     style = MaterialTheme.typography.labelSmall
                 )
@@ -277,16 +279,16 @@ fun HealthStatusSection(score: Int, reportCount: Int) {
         Spacer(modifier = Modifier.width(24.dp))
         Column {
             Text(
-                text = "Health Status",
+                text = stringResource(R.string.health_status),
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
             )
             Text(
-                text = "$reportCount active damage reports",
+                text = stringResource(R.string.active_damage_reports, reportCount),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                text = "Last updated: Just now",
+                text = stringResource(R.string.last_updated_just_now),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.outline
             )
@@ -315,6 +317,12 @@ fun ContractorInfoCard(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
+            val statusDisplay = when (status) {
+                "Expired" -> stringResource(R.string.expired)
+                "Expiring Soon" -> stringResource(R.string.expiring_soon)
+                else -> stringResource(R.string.in_warranty_label)
+            }
+
             if (status == "Expiring Soon") {
                 val daysLeft = (warrantyEnd - System.currentTimeMillis()) / 86400000
                 Surface(
@@ -323,7 +331,7 @@ fun ContractorInfoCard(
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text(
-                        text = "⚠️ Warranty expires in $daysLeft days!",
+                        text = stringResource(R.string.warranty_expiring_soon, daysLeft),
                         modifier = Modifier.padding(8.dp),
                         style = MaterialTheme.typography.labelMedium,
                         color = Color(0xFF856404)
@@ -336,7 +344,7 @@ fun ContractorInfoCard(
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text(
-                        text = "❌ Warranty period has expired",
+                        text = stringResource(R.string.warranty_expired_label),
                         modifier = Modifier.padding(8.dp),
                         style = MaterialTheme.typography.labelMedium,
                         color = Color(0xFF721C24)
@@ -367,7 +375,7 @@ fun ContractorInfoCard(
                     Text(text = company, style = MaterialTheme.typography.bodySmall)
                 }
                 IconButton(onClick = onCallClick) {
-                    Icon(Icons.Default.Phone, contentDescription = "Call", tint = MaterialTheme.colorScheme.primary)
+                    Icon(Icons.Default.Phone, contentDescription = stringResource(R.string.call), tint = MaterialTheme.colorScheme.primary)
                 }
             }
             
@@ -378,7 +386,7 @@ fun ContractorInfoCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Column {
-                    Text(text = "Warranty Period", style = MaterialTheme.typography.labelSmall)
+                    Text(text = stringResource(R.string.warranty_period), style = MaterialTheme.typography.labelSmall)
                     Text(
                         text = "${warrantyStart.toDateOnly()} - ${warrantyEnd.toDateOnly()}",
                         style = MaterialTheme.typography.bodyMedium
@@ -390,7 +398,7 @@ fun ContractorInfoCard(
                     border = androidx.compose.foundation.BorderStroke(1.dp, statusColor.copy(alpha = 0.5f))
                 ) {
                     Text(
-                        text = status,
+                        text = statusDisplay,
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                         color = statusColor,
                         style = MaterialTheme.typography.labelLarge.copy(fontSize = 12.sp)
@@ -402,7 +410,7 @@ fun ContractorInfoCard(
                 onClick = onContractorClick,
                 modifier = Modifier.align(Alignment.End)
             ) {
-                Text("View Contractor Profile")
+                Text(stringResource(R.string.view_contractor_profile))
             }
         }
     }
@@ -446,12 +454,12 @@ fun MaintenanceLogItem(log: com.nammaraste.health.data.local.entities.Maintenanc
             Spacer(modifier = Modifier.height(4.dp))
             Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    text = "Agency: ${log.agencyName}",
+                    text = stringResource(R.string.agency, log.agencyName),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "Cost: ₹${log.costEstimate.toInt()}",
+                    text = stringResource(R.string.cost, log.costEstimate.toInt()),
                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
                 )
             }

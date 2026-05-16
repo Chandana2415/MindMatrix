@@ -18,6 +18,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.nammaraste.health.R
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nammaraste.health.ui.components.*
@@ -41,7 +43,7 @@ fun DashboardScreen(
             ExtendedFloatingActionButton(
                 onClick = onReportClick,
                 icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                text = { Text("Report Damage") },
+                text = { Text(stringResource(R.string.report_damage)) },
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = Color.White
             )
@@ -83,7 +85,7 @@ fun DashboardScreen(
 
                 item {
                     SectionHeader(
-                        title = "Road Health Overview",
+                        title = stringResource(R.string.road_health_overview),
                         onSeeAllClick = onSeeAllRoads
                     )
                 }
@@ -116,7 +118,7 @@ fun DashboardScreen(
                 }
 
                 item {
-                    SectionHeader(title = "Recent Damage Reports")
+                    SectionHeader(title = stringResource(R.string.recent_damage_reports))
                 }
 
                 if (recentReports.isEmpty()) {
@@ -134,7 +136,7 @@ fun DashboardScreen(
                     }
                 } else {
                     items(recentReports) { report ->
-                        val roadName by viewModel.getRoadName(report.roadId).collectAsStateWithLifecycle("Loading...")
+                        val roadName by viewModel.getRoadName(report.roadId).collectAsStateWithLifecycle(stringResource(R.string.loading))
                         DamageReportCard(
                             report = report,
                             roadName = roadName,
@@ -169,12 +171,12 @@ fun GreetingCard() {
             ) {
                 Column {
                     Text(
-                        text = "Dharwad Taluka",
+                        text = stringResource(R.string.dharwad_taluka),
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                     )
                     Text(
-                        text = "Road Health Dashboard",
+                        text = stringResource(R.string.dashboard_title),
                         style = MaterialTheme.typography.headlineSmall.copy(
                             fontWeight = FontWeight.Bold,
                             fontSize = 20.sp
@@ -210,12 +212,12 @@ fun StatsSection(
     Column(modifier = Modifier.padding(horizontal = 12.dp)) {
         Row(modifier = Modifier.fillMaxWidth()) {
             StatCard(
-                label = "Total Roads",
+                label = stringResource(R.string.total_roads),
                 value = totalRoads.toString(),
                 modifier = Modifier.weight(1f)
             )
             StatCard(
-                label = "Active Reports",
+                label = stringResource(R.string.active_reports),
                 value = activeReports.toString(),
                 modifier = Modifier.weight(1f),
                 containerColor = MaterialTheme.colorScheme.errorContainer
@@ -223,13 +225,13 @@ fun StatsSection(
         }
         Row(modifier = Modifier.fillMaxWidth()) {
             StatCard(
-                label = "In Warranty",
+                label = stringResource(R.string.in_warranty),
                 value = inWarranty.toString(),
                 modifier = Modifier.weight(1f),
                 containerColor = MaterialTheme.colorScheme.secondaryContainer
             )
             StatCard(
-                label = "Avg Health Score",
+                label = stringResource(R.string.avg_health_score),
                 value = "$avgHealthScore%",
                 modifier = Modifier.weight(1f),
                 containerColor = MaterialTheme.colorScheme.tertiaryContainer,

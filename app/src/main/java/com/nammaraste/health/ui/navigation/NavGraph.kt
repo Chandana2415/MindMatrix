@@ -62,8 +62,8 @@ fun NavGraph(navController: NavHostController) {
                 onReportDamageClick = { roadId -> navController.navigate(Screen.ReportDamage.createRoute(roadId)) }
             )
         }
-        composable(Screen.SuccessMap.route) {
-            SuccessMapScreen(
+        composable(Screen.Leaderboard.route) {
+            LeaderboardScreen(
                 onRoadClick = { roadId -> navController.navigate(Screen.RoadDetail.createRoute(roadId)) }
             )
         }

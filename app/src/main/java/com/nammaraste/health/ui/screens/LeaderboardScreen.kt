@@ -23,61 +23,72 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.ui.res.stringResource
+import com.nammaraste.health.R
 import com.nammaraste.health.data.local.entities.Road
 import com.nammaraste.health.ui.components.SectionHeader
 import com.nammaraste.health.ui.theme.healthColor
-import com.nammaraste.health.ui.viewmodels.SuccessMapViewModel
+import com.nammaraste.health.ui.viewmodels.LeaderboardViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SuccessMapScreen(
+fun LeaderboardScreen(
     onRoadClick: (Int) -> Unit,
-    viewModel: SuccessMapViewModel = hiltViewModel()
+    viewModel: LeaderboardViewModel = hiltViewModel()
 ) {
     val sortedRoads by viewModel.sortedRoads.collectAsState()
     val topThree by viewModel.topThree.collectAsState()
     val needsAttention by viewModel.needsAttention.collectAsState()
 
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(bottom = 16.dp)
-    ) {
-        item {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = "Best Maintained Roads",
-                    style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)
-                )
-                Text(
-                    text = "Dharwad & Gadag Talukas",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-
-        if (topThree.isNotEmpty()) {
-            item {
-                PodiumCard(topThree)
-            }
-        }
-
-        item {
-            SectionHeader(title = "Full Leaderboard")
-        }
-
-        itemsIndexed(sortedRoads) { index, road ->
-            LeaderboardItem(rank = index + 1, road = road, onClick = { onRoadClick(road.roadId) })
-        }
-
-        item {
-            SectionHeader(
-                title = "Needs Immediate Attention",
-                modifier = Modifier.padding(top = 16.dp)
+    Scaffold(
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = { Text(stringResource(R.string.leaderboard), fontWeight = FontWeight.Bold) }
             )
         }
+    ) { padding ->
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().padding(padding),
+            contentPadding = PaddingValues(bottom = 16.dp)
+        ) {
+            item {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = stringResource(R.string.best_maintained_roads),
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                    )
+                    Text(
+                        text = "Dharwad & Gadag Districts",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
 
-        itemsIndexed(needsAttention) { index, road ->
-            AttentionCard(road = road, onClick = { onRoadClick(road.roadId) })
+            if (topThree.isNotEmpty()) {
+                item {
+                    PodiumCard(topThree)
+                }
+            }
+
+            item {
+                SectionHeader(title = stringResource(R.string.full_rankings))
+            }
+
+            itemsIndexed(sortedRoads) { index, road ->
+                LeaderboardItem(rank = index + 1, road = road, onClick = { onRoadClick(road.roadId) })
+            }
+
+            item {
+                SectionHeader(
+                    title = stringResource(R.string.needs_immediate_attention),
+                    modifier = Modifier.padding(top = 16.dp)
+                )
+            }
+
+            itemsIndexed(needsAttention) { index, road ->
+                AttentionCard(road = road, onClick = { onRoadClick(road.roadId) })
+            }
         }
     }
 }
@@ -243,7 +254,7 @@ fun AttentionCard(road: Road, onClick: () -> Unit) {
                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                 modifier = Modifier.height(32.dp)
             ) {
-                Text("View Road", fontSize = 10.sp)
+                Text(stringResource(R.string.view_road), fontSize = 10.sp)
             }
         }
     }

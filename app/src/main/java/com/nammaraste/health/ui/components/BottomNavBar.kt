@@ -25,7 +25,7 @@ fun BottomNavBar(navController: NavController) {
         NavItem("Roads", Icons.Filled.Map, Icons.Outlined.Map, Screen.RoadList.route),
         NavItem("Report", Icons.Filled.AddCircle, Icons.Outlined.AddCircle, Screen.ReportDamage.createRoute(), Screen.ReportDamage.route),
         NavItem("Map", Icons.Filled.LocationOn, Icons.Outlined.LocationOn, Screen.MapView.route),
-        NavItem("Leaderboard", Icons.Filled.EmojiEvents, Icons.Outlined.EmojiEvents, Screen.SuccessMap.route)
+        NavItem("Leaderboard", Icons.Filled.EmojiEvents, Icons.Outlined.EmojiEvents, Screen.Leaderboard.route)
     )
 
     val navBackStackEntry = navController.currentBackStackEntryAsState()
@@ -37,7 +37,7 @@ fun BottomNavBar(navController: NavController) {
         Screen.Dashboard.route,
         Screen.RoadList.route,
         Screen.MapView.route,
-        Screen.SuccessMap.route
+        Screen.Leaderboard.route
     )
 
     if (showBottomBar) {

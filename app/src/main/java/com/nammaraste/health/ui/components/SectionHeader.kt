@@ -14,6 +14,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+import androidx.compose.ui.res.stringResource
+import com.nammaraste.health.R
+
 @Composable
 fun SectionHeader(
     title: String,
@@ -37,7 +40,7 @@ fun SectionHeader(
         if (onSeeAllClick != null) {
             TextButton(onClick = onSeeAllClick) {
                 Text(
-                    text = "See All",
+                    text = stringResource(R.string.see_all),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.primary
                 )
