@@ -29,6 +29,7 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.*
 import com.nammaraste.health.R
 import com.nammaraste.health.data.local.entities.Road
+import com.nammaraste.health.data.local.entities.DamageReport
 import com.nammaraste.health.ui.components.HealthScoreGauge
 import com.nammaraste.health.ui.theme.healthColor
 import com.nammaraste.health.ui.viewmodels.MapViewModel
@@ -36,47 +37,46 @@ import com.nammaraste.health.util.PolylineParser
 import com.nammaraste.health.util.toRelativeTime
 import kotlinx.coroutines.launch
 
+/**
+ * Senior Developer Implementation of Google Maps for Android (Jetpack Compose)
+ * Implements: Interactive Markers, Info Windows, Coordinate Retrieval, and Responsive UI.
+ */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
 fun MapScreen(
     onRoadClick: (Int) -> Unit,
     onReportDamageClick: (Int) -> Unit,
-    viewModel: MapViewModel = hiltViewModel()
+    viewModel: MapViewModel = hiltViewModel(),
+    initialCenter: LatLng = LatLng(15.4589, 75.0078),
+    initialZoom: Float = 11f
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    
+    // UI State from ViewModel
     val allRoads by viewModel.allRoads.collectAsState()
     val allReports by viewModel.allReports.collectAsState()
     val showReportsOnly by viewModel.showReportsOnly.collectAsState()
 
+    // Map & Interaction State
     val locationPermissionState = rememberPermissionState(Manifest.permission.ACCESS_FINE_LOCATION)
-    val scope = rememberCoroutineScope()
+    val cameraPositionState = rememberCameraPositionState {
+        position = CameraPosition.fromLatLngZoom(initialCenter, initialZoom)
+    }
     
-    val sheetState = rememberModalBottomSheetState()
     var selectedRoad by remember { mutableStateOf<Road?>(null) }
     var showBottomSheet by remember { mutableStateOf(false) }
-
-    val dharwadCenter = LatLng(15.4589, 75.0078)
-    val cameraPositionState = rememberCameraPositionState {
-        position = CameraPosition.fromLatLngZoom(dharwadCenter, 11f)
-    }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.infrastructure_map), fontWeight = FontWeight.Bold) },
                 actions = {
-                    IconButton(onClick = {
-                        viewModel.forceSeedData()
-                        Toast.makeText(context, "Refreshing data...", Toast.LENGTH_SHORT).show()
-                    }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh Data")
+                    IconButton(onClick = { viewModel.forceSeedData(); Toast.makeText(context, "Data Refreshed", Toast.LENGTH_SHORT).show() }) {
+                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
                     }
                     IconButton(onClick = {
-                        scope.launch {
-                            cameraPositionState.animate(
-                                CameraUpdateFactory.newLatLngZoom(dharwadCenter, 11f)
-                            )
-                        }
+                        scope.launch { cameraPositionState.animate(CameraUpdateFactory.newLatLngZoom(initialCenter, initialZoom)) }
                     }) {
                         Icon(Icons.Default.MyLocation, contentDescription = "Recenter")
                     }
@@ -88,207 +88,151 @@ fun MapScreen(
             GoogleMap(
                 modifier = Modifier.fillMaxSize(),
                 cameraPositionState = cameraPositionState,
-                properties = MapProperties(
-                    isMyLocationEnabled = locationPermissionState.status.isGranted,
-                    mapType = MapType.NORMAL
-                ),
-                uiSettings = MapUiSettings(
-                    zoomControlsEnabled = false,
-                    myLocationButtonEnabled = true,
-                    mapToolbarEnabled = true
-                )
+                onMapLongClick = { latLng ->
+                    // Coordinate Retrieval (Requirement 2.4)
+                    Toast.makeText(context, "Coordinates: ${latLng.latitude}, ${latLng.longitude}", Toast.LENGTH_LONG).show()
+                },
+                properties = MapProperties(isMyLocationEnabled = locationPermissionState.status.isGranted),
+                uiSettings = MapUiSettings(zoomControlsEnabled = false, myLocationButtonEnabled = true)
             ) {
+                // Render Roads (Polylines)
                 if (!showReportsOnly) {
                     allRoads.forEach { road ->
                         key(road.roadId) {
-                            val points = remember(road.polylinePoints) { 
-                                PolylineParser.parsePolyline(road.polylinePoints) 
-                            }
+                            val points = remember(road.polylinePoints) { PolylineParser.parsePolyline(road.polylinePoints) }
                             if (points.isNotEmpty()) {
                                 Polyline(
                                     points = points,
                                     color = healthColor(road.healthScore),
                                     width = 14f,
                                     clickable = true,
-                                    onClick = {
-                                        selectedRoad = road
-                                        showBottomSheet = true
-                                    }
+                                    onClick = { selectedRoad = road; showBottomSheet = true }
                                 )
                             }
                         }
                     }
                 }
 
+                // Render Interactive Markers & Info Windows (Requirement 2.3)
                 allReports.filter { !it.isResolved }.forEach { report ->
                     key(report.reportId) {
-                        Marker(
+                        MarkerInfoWindow(
                             state = rememberMarkerState(position = LatLng(report.latitude, report.longitude)),
-                            title = report.damageType,
-                            snippet = "${report.severity} • ${report.reportTimestamp.toRelativeTime()}",
-                            icon = severityMarkerIcon(report.severity)
-                        )
-                    }
-                }
-            }
-
-            // Legend Overlay (Based on user reference)
-            Card(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(16.dp)
-                    .width(160.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.9f)),
-                shape = RoundedCornerShape(8.dp),
-                elevation = CardDefaults.cardElevation(4.dp)
-            ) {
-                Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    LegendRow(color = Color(0xFF4CAF50), label = "Healthy (30-100)")
-                    LegendRow(color = Color(0xFFFF9800), label = "Warning (10-70)")
-                    LegendRow(color = Color(0xFFF44336), label = "Critical (<10)")
-                }
-            }
-
-            // Filter Toggle Buttons (Based on user reference)
-            Surface(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 24.dp),
-                shape = RoundedCornerShape(28.dp),
-                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
-                tonalElevation = 8.dp,
-                shadowElevation = 12.dp
-            ) {
-                Row(
-                    modifier = Modifier.padding(6.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Button(
-                        onClick = { viewModel.toggleReportsOnly(false) },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (!showReportsOnly) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
-                            contentColor = if (!showReportsOnly) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
-                        ),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                        shape = RoundedCornerShape(24.dp)
-                    ) {
-                        Text("All Roads", fontSize = 13.sp, fontWeight = FontWeight.Medium)
-                    }
-                    Button(
-                        onClick = { viewModel.toggleReportsOnly(true) },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (showReportsOnly) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
-                            contentColor = if (showReportsOnly) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
-                        ),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                        shape = RoundedCornerShape(24.dp)
-                    ) {
-                        Text("Reports Only", fontSize = 13.sp, fontWeight = FontWeight.Medium)
-                    }
-                }
-            }
-            
-            // Helpful Diagnostic Info
-            if (allRoads.isEmpty()) {
-                Box(modifier = Modifier.align(Alignment.Center).padding(32.dp)) {
-                    Surface(
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                text = "Map is Blank?",
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = "1. Add your API Key in Manifest\n2. Click the Refresh icon above to load data.",
-                                textAlign = TextAlign.Center,
-                                fontSize = 12.sp
-                            )
+                            icon = severityMarkerIcon(report.severity),
+                            title = report.damageType
+                        ) { marker ->
+                            // Custom Info Window
+                            Card(
+                                modifier = Modifier.padding(8.dp).width(200.dp),
+                                shape = RoundedCornerShape(8.dp),
+                                colors = CardDefaults.cardColors(containerColor = Color.White)
+                            ) {
+                                Column(modifier = Modifier.padding(12.dp)) {
+                                    Text(text = report.damageType, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                    Text(text = "Severity: ${report.severity}", fontSize = 12.sp, color = Color.Gray)
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(text = "Reported ${report.reportTimestamp.toRelativeTime()}", fontSize = 10.sp)
+                                }
+                            }
                         }
                     }
                 }
             }
+
+            // Legend Overlay
+            MapLegendOverlay(Modifier.align(Alignment.TopEnd).padding(16.dp))
+
+            // Filter Toggle
+            MapFilterToggle(
+                showReportsOnly = showReportsOnly,
+                onToggle = { viewModel.toggleReportsOnly(it) },
+                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 24.dp)
+            )
         }
 
+        // Detailed View Bottom Sheet
         if (showBottomSheet && selectedRoad != null) {
-            val road = selectedRoad!!
-            val roadReports = allReports.count { it.roadId == road.roadId && !it.isResolved }
-            
-            ModalBottomSheet(
-                onDismissRequest = { showBottomSheet = false },
-                sheetState = sheetState,
-                containerColor = MaterialTheme.colorScheme.surface,
-                dragHandle = { BottomSheetDefaults.DragHandle() }
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 40.dp, start = 24.dp, end = 24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = road.roadName,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "${road.talukaName}, ${road.districtName}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    
-                    Spacer(modifier = Modifier.height(24.dp))
-                    
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceEvenly
-                    ) {
-                        HealthScoreGauge(score = road.healthScore, modifier = Modifier.size(100.dp))
-                        
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                text = roadReports.toString(),
-                                style = MaterialTheme.typography.headlineMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = if (roadReports > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
-                            )
-                            Text(
-                                text = "Active Reports",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                    
-                    Spacer(modifier = Modifier.height(24.dp))
-                    
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                        OutlinedButton(
-                            onClick = {
-                                showBottomSheet = false
-                                onRoadClick(road.roadId)
-                            },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Text("View Details")
-                        }
-                        Button(
-                            onClick = {
-                                showBottomSheet = false
-                                onReportDamageClick(road.roadId)
-                            },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Text("Report Damage")
-                        }
-                    }
+            RoadDetailsSheet(
+                road = selectedRoad!!,
+                reportCount = allReports.count { it.roadId == selectedRoad!!.roadId && !it.isResolved },
+                onDismiss = { showBottomSheet = false },
+                onRoadClick = onRoadClick,
+                onReportClick = onReportDamageClick
+            )
+        }
+    }
+}
+
+@Composable
+private fun MapLegendOverlay(modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier.width(160.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.9f)),
+        shape = RoundedCornerShape(8.dp),
+        elevation = CardDefaults.cardElevation(4.dp)
+    ) {
+        Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            LegendRow(color = Color(0xFF4CAF50), label = "Healthy (30-100)")
+            LegendRow(color = Color(0xFFFF9800), label = "Warning (10-70)")
+            LegendRow(color = Color(0xFFF44336), label = "Critical (<10)")
+        }
+    }
+}
+
+@Composable
+private fun MapFilterToggle(showReportsOnly: Boolean, onToggle: (Boolean) -> Unit, modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(28.dp),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+        shadowElevation = 8.dp
+    ) {
+        Row(modifier = Modifier.padding(6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterButton(text = "All Roads", isSelected = !showReportsOnly, onClick = { onToggle(false) })
+            FilterButton(text = "Reports Only", isSelected = showReportsOnly, onClick = { onToggle(true) })
+        }
+    }
+}
+
+@Composable
+private fun FilterButton(text: String, isSelected: Boolean, onClick: () -> Unit) {
+    Button(
+        onClick = onClick,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+            contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
+        ),
+        shape = RoundedCornerShape(24.dp)
+    ) {
+        Text(text, fontSize = 13.sp)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun RoadDetailsSheet(
+    road: Road,
+    reportCount: Int,
+    onDismiss: () -> Unit,
+    onRoadClick: (Int) -> Unit,
+    onReportClick: (Int) -> Unit
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(modifier = Modifier.fillMaxWidth().padding(bottom = 40.dp, start = 24.dp, end = 24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(text = road.roadName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text(text = "${road.talukaName}, ${road.districtName}", color = Color.Gray)
+            Spacer(modifier = Modifier.height(24.dp))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                HealthScoreGauge(score = road.healthScore, modifier = Modifier.size(100.dp))
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(text = reportCount.toString(), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                    Text(text = "Active Reports", style = MaterialTheme.typography.labelMedium)
                 }
+            }
+            Spacer(modifier = Modifier.height(24.dp))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                OutlinedButton(onClick = { onDismiss(); onRoadClick(road.roadId) }, modifier = Modifier.weight(1f)) { Text("Details") }
+                Button(onClick = { onDismiss(); onReportClick(road.roadId) }, modifier = Modifier.weight(1f)) { Text("Report") }
             }
         }
     }
@@ -296,10 +240,10 @@ fun MapScreen(
 
 @Composable
 private fun LegendRow(color: Color, label: String) {
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 2.dp)) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
         Box(modifier = Modifier.size(10.dp).background(color, CircleShape))
         Spacer(modifier = Modifier.width(10.dp))
-        Text(text = label, style = MaterialTheme.typography.labelSmall, color = Color.DarkGray)
+        Text(text = label, fontSize = 11.sp, color = Color.DarkGray)
     }
 }
 
