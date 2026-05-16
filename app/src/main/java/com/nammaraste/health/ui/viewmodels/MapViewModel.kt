@@ -8,13 +8,23 @@ import com.nammaraste.health.data.repository.ReportRepository
 import com.nammaraste.health.data.repository.RoadRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
+import com.nammaraste.health.data.local.AppDatabase
+import com.nammaraste.health.data.local.SeedData
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class MapViewModel @Inject constructor(
     private val roadRepository: RoadRepository,
-    private val reportRepository: ReportRepository
+    private val reportRepository: ReportRepository,
+    private val db: AppDatabase
 ) : ViewModel() {
+
+    fun forceSeedData() {
+        viewModelScope.launch {
+            SeedData.populate(db)
+        }
+    }
 
     val allRoads = roadRepository.getAllRoads()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())

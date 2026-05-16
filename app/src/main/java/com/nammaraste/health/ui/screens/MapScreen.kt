@@ -1,6 +1,7 @@
 package com.nammaraste.health.ui.screens
 
 import android.Manifest
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -12,6 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -41,6 +43,7 @@ fun MapScreen(
     onReportDamageClick: (Int) -> Unit,
     viewModel: MapViewModel = hiltViewModel()
 ) {
+    val context = LocalContext.current
     val allRoads by viewModel.allRoads.collectAsState()
     val allReports by viewModel.allReports.collectAsState()
     val showReportsOnly by viewModel.showReportsOnly.collectAsState()
@@ -62,6 +65,12 @@ fun MapScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.infrastructure_map), fontWeight = FontWeight.Bold) },
                 actions = {
+                    IconButton(onClick = {
+                        viewModel.forceSeedData()
+                        Toast.makeText(context, "Refreshing data...", Toast.LENGTH_SHORT).show()
+                    }) {
+                        Icon(Icons.Default.Refresh, contentDescription = "Refresh Data")
+                    }
                     IconButton(onClick = {
                         scope.launch {
                             cameraPositionState.animate(
@@ -91,31 +100,35 @@ fun MapScreen(
             ) {
                 if (!showReportsOnly) {
                     allRoads.forEach { road ->
-                        val points = remember(road.polylinePoints) { 
-                            PolylineParser.parsePolyline(road.polylinePoints) 
-                        }
-                        if (points.isNotEmpty()) {
-                            Polyline(
-                                points = points,
-                                color = healthColor(road.healthScore),
-                                width = 14f,
-                                clickable = true,
-                                onClick = {
-                                    selectedRoad = road
-                                    showBottomSheet = true
-                                }
-                            )
+                        key(road.roadId) {
+                            val points = remember(road.polylinePoints) { 
+                                PolylineParser.parsePolyline(road.polylinePoints) 
+                            }
+                            if (points.isNotEmpty()) {
+                                Polyline(
+                                    points = points,
+                                    color = healthColor(road.healthScore),
+                                    width = 14f,
+                                    clickable = true,
+                                    onClick = {
+                                        selectedRoad = road
+                                        showBottomSheet = true
+                                    }
+                                )
+                            }
                         }
                     }
                 }
 
                 allReports.filter { !it.isResolved }.forEach { report ->
-                    Marker(
-                        state = rememberMarkerState(position = LatLng(report.latitude, report.longitude)),
-                        title = report.damageType,
-                        snippet = "${report.severity} • ${report.reportTimestamp.toRelativeTime()}",
-                        icon = severityMarkerIcon(report.severity)
-                    )
+                    key(report.reportId) {
+                        Marker(
+                            state = rememberMarkerState(position = LatLng(report.latitude, report.longitude)),
+                            title = report.damageType,
+                            snippet = "${report.severity} • ${report.reportTimestamp.toRelativeTime()}",
+                            icon = severityMarkerIcon(report.severity)
+                        )
+                    }
                 }
             }
 
@@ -175,20 +188,27 @@ fun MapScreen(
                 }
             }
             
-            // Empty State Diagnostic
-            if (allRoads.isEmpty() && !showReportsOnly) {
-                Surface(
-                    modifier = Modifier.align(Alignment.Center).padding(32.dp),
-                    color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.9f),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Text(
-                        text = "Data not found. If this is the first run, please clear app storage to seed the database.",
-                        modifier = Modifier.padding(16.dp),
-                        color = MaterialTheme.colorScheme.onErrorContainer,
-                        textAlign = TextAlign.Center,
-                        fontSize = 12.sp
-                    )
+            // Helpful Diagnostic Info
+            if (allRoads.isEmpty()) {
+                Box(modifier = Modifier.align(Alignment.Center).padding(32.dp)) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = "Map is Blank?",
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "1. Add your API Key in Manifest\n2. Click the Refresh icon above to load data.",
+                                textAlign = TextAlign.Center,
+                                fontSize = 12.sp
+                            )
+                        }
+                    }
                 }
             }
         }
